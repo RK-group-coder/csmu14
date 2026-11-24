@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OA-on-Chip 智慧化藥物篩選實驗室分析工作站 (Model OA-3240)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ==================== MOBILE DEVICE BLOCKING OVERLAY ==================== -->
+  <div class="mobile-lock-overlay" id="mobileLockOverlay" aria-hidden="true">
+    <div class="mobile-lock-box">
+      <div class="mobile-lock-tag">SYSTEM ACCESS RESTRICTED｜終端設備不相容</div>
+      <h2>請使用電腦開啟本分析系統</h2>
+      <p>
+        本平台為 <strong>OA-on-Chip 實驗室多物理場模擬與微流道數據分析工作站</strong>，包含高密度遙測圖表、3D 網格運算與後台公式推導介面，不支援手機或窄螢幕裝置操作。
+      </p>
+      <div class="mobile-lock-spec">
+        <div>最低硬體顯示需求：桌上型電腦 / 筆記型電腦 (解析度寬度 ≥ 1024 px)</div>
+        <div id="mobileDetectInfo">偵測狀態：行動裝置存取已鎖定</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOP INSTRUMENT CHASSIS BAR ==================== -->
+  <header class="inst-header">
+    <div class="inst-brand">
+      <div class="inst-title-group">
+        <h1>OA-on-Chip 整合動態共培養、多物理場模擬與 RAG 分析系統</h1>
+      </div>
+    </div>
+
+    <div class="inst-controls-right">
+      <button class="btn-inst" id="btnThemeToggle" title="切換實驗室深色/淺色儀器面板">
+        <span>◑ 面板配色</span>
+      </button>
+      <button class="btn-inst btn-backend-toggle" id="btnToggleBackend">
+        <span id="backendBtnLabel">切換至後台：公式代入與每一步流程</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== GLOBAL HARDWARE PARAMETER CONTROL STRIP ==================== -->
+  <section class="control-strip">
+    <div class="ctrl-group">
+      <span class="ctrl-label">實驗組別 (GROUP):</span>
+      <select id="selGroup" class="ctrl-select">
+        <option value="Control">Control (空白對照組)</option>
+        <option value="OA_Model" selected>OA_Model (IL-1β 發炎誘導組)</option>
+        <option value="OA_GW4869">OA_GW4869 (上游 EV 釋放抑制劑)</option>
+        <option value="OA_siRNA_Rab27a">OA_siRNA_Rab27a (上游 Rab27a 基因沉默)</option>
+        <option value="OA_2DG">OA_2DG (下游 2-DG 糖解抑制劑)</option>
+        <option value="OA_PX478">OA_PX478 (下游 PX-478 HIF-1α 抑制劑)</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group">
+      <span class="ctrl-label">灌流流量 Q (μL/min):</span>
+      <div class="seg-buttons" id="segFlow">
+        <button class="seg-btn" data-flow="2">2.0</button>
+        <button class="seg-btn active" data-flow="5">5.0</button>
+        <button class="seg-btn" data-flow="10">10.0</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <span class="ctrl-label">採樣時間 t (h):</span>
+      <div class="seg-buttons" id="segTime">
+        <button class="seg-btn" data-time="0">0</button>
+        <button class="seg-btn" data-time="6">6</button>
+        <button class="seg-btn" data-time="12">12</button>
+        <button class="seg-btn active" data-time="24">24</button>
+        <button class="seg-btn" data-time="48">48</button>
+        <button class="seg-btn" data-time="72">72</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <span class="ctrl-label">重複批次 (REP):</span>
+      <div class="seg-buttons" id="segRep">
+        <button class="seg-btn active" data-rep="1">Rep 1</button>
+        <button class="seg-btn" data-rep="2">Rep 2</button>
+        <button class="seg-btn" data-rep="3">Rep 3</button>
+        <button class="seg-btn" data-rep="MEAN">Mean±SD</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <span class="ctrl-label">對照基準:</span>
+      <select id="selCompareGroup" class="ctrl-select">
+        <option value="OA_Model">vs. OA_Model (病理組)</option>
+        <option value="Control">vs. Control (健康組)</option>
+      </select>
+    </div>
+
+    <div class="record-locator" id="recordLocator">
+      CHIP_ID: <strong>SYN_OA_Model_5_1</strong> | RECORD: <strong>#76 / 324</strong>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       FOREGROUND INSTRUMENT WORKSPACE (MODULES 1, 2, 3)
+       ========================================================================== -->
+  <main class="workspace-container foreground-view" id="foregroundView">
+
+    <!-- Sub-view Navigation Tabs -->
+    <div class="module-tabs-bar">
+      <div class="module-tabs">
+        <button class="mod-tab active" data-modtab="all">
+          <span class="mod-code">ALL</span> 三大模組整合監控總覽 (Integrated Workstation)
+        </button>
+        <button class="mod-tab" data-modtab="mod1">
+          <span class="mod-code">MOD-1</span> 模組一：微流道晶片動態共培養與 F1~F7 驗證
+        </button>
+        <button class="mod-tab" data-modtab="mod2">
+          <span class="mod-code">MOD-2</span> 模組二：3D 多物理場 FEM 模擬與虛擬藥效 (In Silico)
+        </button>
+        <button class="mod-tab" data-modtab="mod3">
+          <span class="mod-code">MOD-3</span> 模組三：RAG 雙軌混合檢索與防幻覺決策系統
+        </button>
+      </div>
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">
+        [提示] 點擊上方參數或下方表格任一列，全系統圖表與後台公式將同步即時重算
+      </div>
+    </div>
+
+    <!-- MAIN 3-COLUMN INSTRUMENT PANEL LAYOUT -->
+    <div class="inst-grid-3col" id="mainGrid3Col">
+
+      <!-- ==================== LEFT COLUMN: MODULE 1 TELEMETRY & F1-F7 QC ==================== -->
+      <div style="display: flex; flex-direction: column; gap: 10px;" id="colMod1">
+        
+        <!-- 5-Layer Chip Cross Section & Live Fluidic Status -->
+        <section class="inst-panel">
+          <div class="panel-header">
+            <div class="panel-title">模組一｜微流道五層晶片架構與雙靶點位置</div>
+            <span class="panel-tag">CHAMBER A/B + PET</span>
+          </div>
+          <div class="panel-body">
+            <div class="canvas-frame" style="margin-bottom: 8px;">
+              <canvas id="chipSchematicCanvas" width="320" height="215"></canvas>
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); display: flex; justify-content: space-between;">
+              <span>上游: FLS (IL-1β 刺激)</span>
+              <span>介面: PET 多孔膜</span>
+              <span>下游: RAW264.7 / ATDC5</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Digital Multimeter Readouts (6 Core Variables from CSV) -->
+        <section class="inst-panel">
+          <div class="panel-header">
+            <div class="panel-title">晶片即時感測讀數 (Digital Telemetry)</div>
+            <span class="panel-tag" id="dmmChipTag">SYN_OA_Model_5_1</span>
+          </div>
+          <div class="panel-body">
+            <div class="dmm-grid">
+              <!-- 1. Pressure Drop -->
+              <div class="dmm-box highlight">
+                <div class="dmm-label"><span>1. 晶片壓差</span><span class="dmm-symbol">ΔP</span></div>
+                <div class="dmm-value-row">
+                  <span class="dmm-val" id="valPressure">2.735</span>
+                  <span class="dmm-unit">Pa</span>
+                </div>
+                <div class="dmm-sub">
+                  <span>理論: <strong id="theoPressure">2.750</strong></span>
+                  <span>ε_P: <strong id="noisePressure">0.995</strong></span>
+                </div>
+              </div>
+
+              <!-- 2. Tracer Transfer -->
+              <div class="dmm-box highlight">
+                <div class="dmm-label"><span>2. 跨腔室傳輸率</span><span class="dmm-symbol">T(t,Q)</span></div>
+                <div class="dmm-value-row">
+                  <span class="dmm-val" id="valTracer">7.81</span>
+                  <span class="dmm-unit">%</span>
+                </div>
+                <div class="dmm-sub">
+                  <span>理論: <strong id="theoTracer">7.90</strong>%</span>
+                  <span>Δ: <strong id="noiseTracer">-0.09</strong>%</span>
+                </div>
+              </div>
+
+              <!-- 3. EV Concentration -->
+              <div class="dmm-box highlight">
+                <div class="dmm-label"><span>3. EV 顆粒濃度</span><span class="dmm-symbol">EV(t)</span></div>
+                <div class="dmm-value-row">
+                  <span class="dmm-val" id="valEv">2.06e9</span>
+                  <span class="dmm-unit">p/mL</span>
+                </div>
+                <div class="dmm-sub">
+                  <span>理論: <strong id="theoEv">2.26e9</strong></span>
+                  <span>A_g: <strong id="agEv">1.20</strong></span>
+                </div>
+              </div>
+
+              <!-- 4. Cell Viability -->
+              <div class="dmm-box highlight">
+                <div class="dmm-label"><span>4. 細胞存活率</span><span class="dmm-symbol">V(t)</span></div>
+                <div class="dmm-value-row">
+                  <span class="dmm-val" id="valViability">89.29</span>
+                  <span class="dmm-unit">%</span>
+                </div>
+                <div class="dmm-sub">
+                  <span>理論: <strong id="theoViability">87.90</strong>%</span>
+                  <span>P_g: <strong id="pgViability">6.0</strong></span>
+                </div>
+              </div>
+
+              <!-- 5. IL-6 -->
+              <div class="dmm-box">
+                <div class="dmm-label"><span>5. 發炎因子 IL-6</span><span class="dmm-symbol">C_IL6</span></div>
+                <div class="dmm-value-row">
+                  <span class="dmm-val" id="valIl6">112.40</span>
+                  <span class="dmm-unit">pg/mL</span>
+                </div>
+                <div class="dmm-sub">
+                  <span>理論: <strong id="theoIl6">139.8</strong></span>
+                  <span>A_g: <strong id="agIl6">160.0</strong></span>
+                </div>
+              </div>
+
+              <!-- 6. TNF-alpha & M1 -->
+              <div class="dmm-box">
+                <div class="dmm-label"><span>6. TNF-α / M1 極化</span><span class="dmm-symbol">C_TNF</span></div>
+                <div class="dmm-value-row">
+                  <span class="dmm-val" id="valTnfa">76.61</span>
+                  <span class="dmm-unit">pg/mL</span>
+                </div>
+                <div class="dmm-sub">
+                  <span>M1 Index: <strong id="valM1">0.5742</strong></span>
+                  <span>A_g: <strong id="agTnfa">100.0</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Product Functional Verification F1~F7 Gatekeeper -->
+        <section class="inst-panel">
+          <div class="panel-header">
+            <div class="panel-title">產品功能驗證架構 (F1~F7 逐級放行檢核)</div>
+            <span class="panel-tag">STAGE 1-3 QC</span>
+          </div>
+          <div class="panel-body">
+            <table class="qc-gate-table">
+              <thead>
+                <tr>
+                  <th>階段 / 代號</th>
+                  <th>驗證項目與物理生物判準</th>
+                  <th>實測指標</th>
+                  <th>狀態</th>
+                </tr>
+              </thead>
+              <tbody id="qcGateTableBody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ==================== CENTER COLUMN: TIME-SERIES OSCILLOSCOPE & MODULE 2 FEM ==================== -->
+      <div style="display: flex; flex-direction: column; gap: 10px;" id="colCenter">
+
+        <!-- Module 1 Multi-Group Time-Course Curve Plotter -->
+        <section class="inst-panel">
+          <div class="panel-header">
+            <div class="panel-title">模組一｜動態共培養時間序列曲線與理論模型擬合 (0h ~ 72h)</div>
+            <span class="panel-tag">R(t) = 1 - exp(-t/18)</span>
+          </div>
+          <div class="panel-body">
+            <div class="plot-toolbar">
+              <div class="seg-buttons" id="segPlotMetric">
+                <button class="seg-btn active" data-metric="il6_pg_mL">IL-6 (pg/mL)</button>
+                <button class="seg-btn" data-metric="tnfa_pg_mL">TNF-α (pg/mL)</button>
+                <button class="seg-btn" data-metric="ev_particles_per_mL">EV 濃度 (p/mL)</button>
+                <button class="seg-btn" data-metric="viability_pct">存活率 V (%)</button>
+                <button class="seg-btn" data-metric="tracer_transfer_pct">示蹤傳輸 T (%)</button>
+                <button class="seg-btn" data-metric="pressure_drop_Pa">壓差 ΔP (Pa)</button>
+              </div>
+              <label style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                <input type="checkbox" id="chkShowAllGroups" checked /> 疊加顯示全部 6 組趨勢與公式理論曲線 (虛線)
+              </label>
+            </div>
+            <div class="canvas-frame">
+              <canvas id="timeSeriesCanvas" width="600" height="250"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- Module 2: 3D Multiphysics Numerical Simulation & In Silico PD Engine -->
+        <section class="inst-panel" id="panelMod2">
+          <div class="panel-header">
+            <div class="panel-title">模組二｜3D 多物理場數值模擬與虛擬藥效評估引擎 (In Silico FEM / PDE / PD)</div>
+            <span class="panel-tag">10% STRAIN @ 1 Hz | 3-LAYER ENGINE</span>
+          </div>
+          <div class="panel-body">
+            <div class="plot-toolbar">
+              <div class="ctrl-group">
+                <span class="ctrl-label">動態壓縮應變 (Strain):</span>
+                <select id="selFemStrain" class="ctrl-select" style="min-width: 95px;">
+                  <option value="0.05">5% (生理低負荷)</option>
+                  <option value="0.10" selected>10% (標準實驗負載)</option>
+                  <option value="0.18">18% (超載病理剪切 &gt;15%)</option>
+                </select>
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">給藥濃度 [Drug]/IC50:</span>
+                <select id="selDrugRatio" class="ctrl-select" style="min-width: 95px;">
+                  <option value="0">0 (未用藥對照)</option>
+                  <option value="0.8">0.8x IC50 (低劑量)</option>
+                  <option value="2.0" selected>2.0x IC50 (標準劑量)</option>
+                  <option value="4.5">4.5x IC50 (高劑量阻斷)</option>
+                </select>
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">模擬病程天數:</span>
+                <input type="range" id="rngPdDays" min="1" max="30" value="14" style="width: 90px;" />
+                <span id="lblPdDays" style="font-family: var(--font-mono); font-weight: 700; color: var(--led-info);">Day 14</span>
+              </div>
+            </div>
+
+            <div class="inst-grid-2col" style="margin-top: 6px;">
+              <!-- Left Sub-canvas: 3D Cartilage ECM Porous Mesh & Snowball Degradation -->
+              <div>
+                <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between;">
+                  <span>動態網格楊氏模量 E(x,y) 與孔隙水壓場</span>
+                  <span id="femMeshStatus" style="color: var(--led-warn);">局部剪切 &gt;15% 觸發區</span>
+                </div>
+                <div class="canvas-frame">
+                  <canvas id="femMeshCanvas" width="290" height="210"></canvas>
+                </div>
+              </div>
+
+              <!-- Right Sub-canvas: 7~30 Days In Silico PD Cartilage Retention & GAG Loss Curve -->
+              <div>
+                <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between;">
+                  <span>雙組對照動態預測 (用藥組 vs. 未用藥組 7~30 天)</span>
+                  <span id="pdEffReadout" style="color: var(--led-pass);">[MMP]eff 折減: -66.7%</span>
+                </div>
+                <div class="canvas-frame">
+                  <canvas id="pdCurveCanvas" width="290" height="210"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3-Layer Mechanobiological Telemetry Strip -->
+            <div class="math-audit-grid" style="margin-top: 8px;">
+              <div class="audit-cell">
+                <div class="a-lbl">第1層｜孔隙水壓 p / 流速 w</div>
+                <div class="a-val" id="femReadoutL1">p=14.2 kPa | w=-k∇p</div>
+              </div>
+              <div class="audit-cell">
+                <div class="a-lbl">第2層｜TRPV4/β1-integrin 轉導</div>
+                <div class="a-val" id="femReadoutL2">峰值應變 16.4% (&gt;15%)</div>
+              </div>
+              <div class="audit-cell">
+                <div class="a-lbl">第3層｜酶活性折減 [MMP]eff</div>
+                <div class="a-val" id="femReadoutL3">[MMP]/(1+[D]/IC50)</div>
+              </div>
+              <div class="audit-cell">
+                <div class="a-lbl">網格模量 E / 軟骨殘留率</div>
+                <div class="a-val" id="femReadoutE">E=0.68 MPa | GAG 84.2%</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Raw 324 Synthetic Dataset Browser -->
+        <section class="inst-panel">
+          <div class="panel-header">
+            <div class="panel-title">模組一虛擬晶片模擬數據庫檢視器 (共 324 筆 CSV 原始記錄)</div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <label style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="chkFilterCurrentGroup" checked /> 僅顯示當前組別與流量
+              </label>
+              <a href="OA_Module1_Synthetic_Data.csv" download class="panel-tag" style="text-decoration: none; color: var(--led-info);">⬇ 下載 CSV</a>
+            </div>
+          </div>
+          <div class="panel-body" style="padding: 0;">
+            <div class="data-table-wrap">
+              <table class="inst-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>chip_id</th>
+                    <th>time_h</th>
+                    <th>Q</th>
+                    <th>ΔP (Pa)</th>
+                    <th>T (%)</th>
+                    <th>EV (p/mL)</th>
+                    <th>IL-6</th>
+                    <th>TNF-α</th>
+                    <th>V (%)</th>
+                    <th>M1</th>
+                  </tr>
+                </thead>
+                <tbody id="csvTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ==================== RIGHT COLUMN: MODULE 3 RAG AI ANALYSIS SYSTEM ==================== -->
+      <div style="display: flex; flex-direction: column; gap: 10px;" id="colMod3">
+
+        <!-- Core 1 & 2: Dual-Track DB & Hybrid Retrieval (SQL + Vector + Guardrails) -->
+        <section class="inst-panel">
+          <div class="panel-header">
+            <div class="panel-title">模組三｜RAG 雙軌混合檢索與防幻覺校驗核心</div>
+            <span class="panel-tag">DUAL-TRACK DB</span>
+          </div>
+          <div class="panel-body">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; font-family: var(--font-mono);">
+              [軌道 A] 結構化 SQL 精確查詢 (鎖定當前晶片條件與生化常數)
+            </div>
+            <div class="code-console" id="ragSqlConsole"></div>
+
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin: 8px 0 4px; font-family: var(--font-mono); display: flex; justify-content: space-between;">
+              <span>[軌道 B] 密集語意向量檢索 + Re-ranking 文獻佐證庫</span>
+              <span style="color: var(--led-pass);">Top-K 召回已對齊</span>
+            </div>
+            <div id="ragVectorList">
+              <!-- Populated by JS with team's reference papers -->
+            </div>
+          </div>
+        </section>
+
+        <!-- Anti-Hallucination & Rigid Parameter Boundary Verification -->
+        <section class="inst-panel">
+          <div class="panel-header">
+            <div class="panel-title">數值邊界防護與參數剛性校驗 (Zero-Hallucination)</div>
+            <span class="panel-tag">PK/PD GUARDRAIL</span>
+          </div>
+          <div class="panel-body">
+            <table class="qc-gate-table">
+              <thead>
+                <tr>
+                  <th>校驗維度</th>
+                  <th>文獻/物理安全閾值</th>
+                  <th>當前演算值</th>
+                  <th>判定</th>
+                </tr>
+              </thead>
+              <tbody id="ragGuardrailBody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Core 3: Automated Preclinical Interpretation & Decision Support Output -->
+        <section class="inst-panel">
+          <div class="panel-header">
+            <div class="panel-title">自動化研究數據解讀與實驗優化決策輸出</div>
+            <span class="panel-tag">VERIFIABLE INSIGHT</span>
+          </div>
+          <div class="panel-body">
+            <div class="code-console" id="ragDiagnosisOutput" style="border-left: 3px solid var(--led-info); font-family: var(--font-ui); font-size: 12px;">
+              <!-- Populated dynamically by JS -->
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       UNDER-THE-HOOD BACKEND VIEW: FORMULA SUBSTITUTION & STEP-BY-STEP PIPELINE
+       ========================================================================== -->
+  <section class="backend-inspector" id="backendView">
+
+    <div class="inst-panel" style="margin-bottom: 12px;">
+      <div class="panel-header">
+        <div class="panel-title">後台運算核心透視器｜五步法資料流向 Pipeline 與公式數值代入 (Step-by-Step Execution Trace)</div>
+        <span class="panel-tag">LIVE MATH &amp; PIPELINE ENGINE</span>
+      </div>
+      <div class="panel-body">
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
+          此後台面板即時拆解當前所選晶片記錄（<strong id="bkCurrentRecordLabel" style="color: var(--led-info); font-family: var(--font-mono);">SYN_OA_Model_5_1</strong>）從「原始公式定義 $\rightarrow$ 群組係數查表 $\rightarrow$ 數值逐步代入 $\rightarrow$ 理論無雜訊值 $\rightarrow$ 隨機變異誤差 $\varepsilon$ 反演 $\rightarrow$ 多物理場 FEM 與 RAG 校驗」的完整過程。點擊下方任一步驟可聚焦檢視該階段細節：
+        </div>
+
+        <!-- 5-Step Interactive Pipeline Stepper -->
+        <div class="pipeline-stepper" id="pipelineStepper">
+          <div class="step-node active" data-step="all">
+            <div class="step-num"><span>STEP 1 → 5</span><span>ALL STEPS</span></div>
+            <div class="step-title">完整全流程展開檢視</div>
+            <div class="step-io">顯示所有模組公式代入與殘差反演</div>
+          </div>
+          <div class="step-node" data-step="step1">
+            <div class="step-num"><span>STEP 1</span><span>FLUIDICS</span></div>
+            <div class="step-title">微流道流體力學與跨腔室傳輸</div>
+            <div class="step-io">輸入: Q, t → 計算: ΔP, T(t,Q)</div>
+          </div>
+          <div class="step-node" data-step="step2">
+            <div class="step-num"><span>STEP 2</span><span>BIO-KINETICS</span></div>
+            <div class="step-title">時間反應函數與發炎/EV/存活率</div>
+            <div class="step-io">計算: R(t) → C(t), EV(t), V(t)</div>
+          </div>
+          <div class="step-node" data-step="step3">
+            <div class="step-num"><span>STEP 3</span><span>3D FEM &amp; PD</span></div>
+            <div class="step-title">孔隙彈性力學與酶活性動態折減</div>
+            <div class="step-io">計算: w=-k∇p, [MMP]eff, 模量 E</div>
+          </div>
+          <div class="step-node" data-step="step4">
+            <div class="step-num"><span>STEP 4</span><span>RAG &amp; BAYESIAN</span></div>
+            <div class="step-title">貝氏黃金數據校準與防幻覺檢核</div>
+            <div class="step-io">輸出: 雙軌溯源與剛性邊界判定</div>
+          </div>
+        </div>
+
+        <!-- Group Coefficient Lookup Matrix Table -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">
+            ▼ 模組一 6 大實驗組別底層模型參數表 (根據 324 筆合成數據設定之基準係數，當前選取組別已高亮標示)
+          </div>
+          <table class="qc-gate-table" style="font-family: var(--font-mono);">
+            <thead>
+              <tr>
+                <th>實驗組別 (Group)</th>
+                <th>作用位置與藥物機制</th>
+                <th>時間反應函數 R(t)</th>
+                <th>EV 效應係數 A_g,EV</th>
+                <th>IL-6 幅度 A_g,IL6 (C0=22)</th>
+                <th>TNF-α 幅度 A_g,TNF (C0=15)</th>
+                <th>存活懲罰係數 P_g (V0=96)</th>
+                <th>M1 極化幅度 A_g,M1 (M0=0.12)</th>
+              </tr>
+            </thead>
+            <tbody id="bkParamMatrixBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Dynamic Formula Substitution Cards Grid -->
+        <div class="formula-grid" id="bkFormulaGrid">
+          <!-- Populated dynamically by JS with exact step-by-step substitution -->
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
